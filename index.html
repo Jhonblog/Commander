@@ -31,21 +31,10 @@
     </script>
     
     <style>
-        /* 平滑过渡 */
-        .smooth-transition {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* 隐藏原生滚动条，但保留滚动功能 */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        .smooth-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 桌面端侧边栏折叠样式 */
         @media (min-width: 768px) {
             .desktop-sidebar-collapsed {
                 width: 0 !important;
@@ -54,13 +43,8 @@
             }
         }
 
-        /* 加载动画 */
-        .spin {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            100% { transform: rotate(360deg); }
-        }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="h-full bg-slate-50 dark:bg-darkbg text-slate-800 dark:text-slate-100 font-sans overflow-hidden smooth-transition">
@@ -68,7 +52,7 @@
     <!-- 主框架 -->
     <div class="flex h-full w-full relative">
         
-        <!-- 移动端侧边栏遮罩背景 -->
+        <!-- 移动端侧边栏遮罩 -->
         <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden smooth-transition backdrop-blur-sm"></div>
 
         <!-- 左侧分类文件夹侧边栏 -->
@@ -80,7 +64,6 @@
                     <span class="text-xl">📝</span>
                     <h1 class="font-bold text-[17px] tracking-wide text-slate-800 dark:text-slate-100">Commander</h1>
                 </div>
-                <!-- 移动端关闭按钮 -->
                 <button id="closeSidebarBtn" class="md:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-500 smooth-transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
@@ -97,13 +80,10 @@
             </div>
 
             <!-- 文件夹列表区 -->
-            <div id="folderList" class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1">
-                <!-- 动态生成 -->
-            </div>
+            <div id="folderList" class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1"></div>
 
             <!-- 数据导入导出及云同步区 (底部栏) -->
             <div class="p-4 border-t border-slate-100 dark:border-darkborder shrink-0 flex flex-col gap-2">
-                <!-- 登录同步按钮 -->
                 <button id="authBtn" class="w-full text-xs py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all font-medium flex items-center justify-center gap-1.5 border border-blue-200 dark:border-blue-800/50 active:scale-95">
                     <svg id="syncIcon" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg> 
                     <span id="authBtnText" class="truncate max-w-[150px]">登录并同步</span>
@@ -124,17 +104,13 @@
         <!-- 右侧主工作区 -->
         <main class="flex-1 flex flex-col h-full min-w-0 relative bg-slate-50 dark:bg-darkbg smooth-transition">
             
-            <!-- 顶部控制导航栏 -->
             <header class="h-[68px] border-b border-slate-200 dark:border-darkborder flex items-center justify-between px-6 bg-white dark:bg-darkside shrink-0">
                 <div class="flex items-center gap-4 flex-1 min-w-0">
-                    <!-- 显示/隐藏侧边栏按钮 -->
                     <button id="toggleSidebarBtn" class="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-all active:scale-95 text-slate-600 dark:text-slate-300 shrink-0" title="收起/展开侧边栏">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </button>
-                    <!-- 当前文件夹标题 -->
                     <span id="currentFolderName" class="font-bold text-[17px] text-slate-800 dark:text-slate-100 truncate">请选择分类</span>
                 </div>
-                <!-- 全局搜索框 -->
                 <div class="relative w-36 md:w-64 transition-all duration-300 shrink-0 ml-4">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-4 w-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -145,11 +121,8 @@
 
             <!-- 列表展示区 -->
             <div class="flex-1 overflow-y-auto p-6 relative" id="mainScrollArea">
-                <div id="listContainer" class="max-w-4xl mx-auto space-y-3.5 pb-20">
-                    <!-- 动态渲染生成的文本条 -->
-                </div>
+                <div id="listContainer" class="max-w-4xl mx-auto space-y-3.5 pb-20"></div>
                 
-                <!-- 空白/无分类占位状态 -->
                 <div id="workspaceEmptyState" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <div class="text-5xl mb-4 opacity-30 dark:opacity-20">📁</div>
                     <p id="emptyStateText" class="text-slate-400 dark:text-slate-500 text-sm font-medium">这里空空如也，请先在左侧创建一个分类</p>
@@ -170,7 +143,7 @@
         </main>
     </div>
 
-    <!-- 右下角悬浮操作区（包含主题切换） -->
+    <!-- 主题按钮与提示Toast -->
     <div class="fixed top-6 right-6 z-50 md:top-auto md:bottom-6 md:right-6">
         <button id="themeToggleBtn" class="w-11 h-11 rounded-full bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder shadow-lg flex items-center justify-center text-slate-600 dark:text-yellow-500 active:scale-95 smooth-transition hover:scale-105" title="切换主题">
             <svg id="themeIconSun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
@@ -178,17 +151,16 @@
         </button>
     </div>
 
-    <!-- 提示容器 -->
     <div id="toastContainer" class="fixed top-6 right-1/2 translate-x-1/2 md:translate-x-0 md:right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
-    <!-- Firebase 登录/注册弹窗 -->
+    <!-- Auth Modal -->
     <div id="authModal" class="fixed inset-0 bg-black/50 z-[120] flex items-center justify-center backdrop-blur-sm opacity-0 pointer-events-none smooth-transition">
         <div id="authModalContent" class="bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl transform scale-95 smooth-transition relative">
             <button id="closeAuthBtn" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <h3 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1" id="authModalTitle">登录并同步</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">登录后记录将自动同步至云端，永不丢失。</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">登录后记录将自动增量同步至云端。</p>
 
             <div id="authError" class="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs p-2 rounded-xl mb-4 border border-red-100 dark:border-red-900 hidden"></div>
 
@@ -230,16 +202,15 @@
     <div id="importModal" class="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center backdrop-blur-sm opacity-0 pointer-events-none smooth-transition">
         <div id="importModalContent" class="bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl transform scale-95 smooth-transition">
             <h3 class="text-[17px] font-bold text-slate-800 dark:text-slate-100 mb-2">恢复数据</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">导入新的备份文件将<strong class="text-red-500">覆盖并抹除</strong>当前页面所有的分类和记录。确定要继续吗？</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">导入新的备份文件将与当前数据进行<strong class="text-blue-500">增量合并</strong>，防止记录丢失。确定要继续吗？</p>
             <div class="flex justify-end gap-3">
                 <button id="cancelImportBtn" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all active:scale-95">取消</button>
-                <button id="confirmImportBtn" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95">确认覆盖</button>
+                <button id="confirmImportBtn" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95">确认合并</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- Firebase & Workers 配置 ---
         const firebaseConfig = {
             apiKey: "AIzaSyAinFheSkx_rP7E_wjjwlv858hgybtR9PE",
             authDomain: "myapp-81de3.firebaseapp.com",
@@ -257,7 +228,10 @@
         let isSyncing = false;
         let isSignUpMode = false;
 
-        // 核心变量，启用全新的存储键名
+        // 防空刷新锁与状态
+        let isDataLoaded = false;
+        let syncStatus = 'idle'; // 'idle', 'syncing', 'error', 'success'
+
         const STORAGE_KEY_DATA = 'commander_data_v4';
         const STORAGE_KEY_FOLDERS = 'commander_folders_v4';
         const STORAGE_KEY_CURRENT = 'commander_current_v4';
@@ -271,7 +245,7 @@
         let folderToDelete = null;
         let pendingImportData = null; 
 
-        // DOM 抓取
+        // DOM Elements
         const inputEl = document.getElementById('mainInput');
         const confirmBtn = document.getElementById('confirmBtn');
         const listContainer = document.getElementById('listContainer');
@@ -301,7 +275,6 @@
         const cancelImportBtn = document.getElementById('cancelImportBtn');
         const confirmImportBtn = document.getElementById('confirmImportBtn');
         
-        // Auth DOM
         const authBtn = document.getElementById('authBtn');
         const authBtnText = document.getElementById('authBtnText');
         const syncIcon = document.getElementById('syncIcon');
@@ -318,41 +291,43 @@
         const authModalTitle = document.getElementById('authModalTitle');
 
         function init() {
-            // 初始化 Firebase 监听器
             auth.onAuthStateChanged(async (user) => {
                 currentUser = user;
                 if (user) {
                     authBtnText.textContent = `${(user.displayName || user.email).split('@')[0]}`;
-                    // 更换图标为勾
-                    syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>`;
-                    authBtn.classList.add('bg-green-50', 'dark:bg-green-900/20', 'text-green-600', 'dark:text-green-400', 'border-green-200', 'dark:border-green-800/50');
-                    authBtn.classList.remove('bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'dark:text-blue-400', 'border-blue-200', 'dark:border-blue-800/50');
-                    
-                    await pullFromCloud(); // 登录后拉取数据
+                    await pullFromCloud(); 
                 } else {
                     authBtnText.textContent = "登录并同步";
-                    syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>`;
-                    authBtn.classList.remove('bg-green-50', 'dark:bg-green-900/20', 'text-green-600', 'dark:text-green-400', 'border-green-200', 'dark:border-green-800/50');
-                    authBtn.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'dark:text-blue-400', 'border-blue-200', 'dark:border-blue-800/50');
-                    
-                    loadLocalData(); // 未登录退回本地存储
+                    setSyncingUI('idle');
+                    loadLocalData(true); 
                 }
             });
 
             initTheme();
             initResponsiveSidebar();
+            initRetryListener();
         }
 
-        // --- 核心数据存取逻辑 (加入静默同步) ---
+        function initRetryListener() {
+            window.addEventListener('online', () => {
+                if (syncStatus === 'error' && currentUser) pushToCloud();
+            });
+            setInterval(() => {
+                if (syncStatus === 'error' && currentUser && navigator.onLine) {
+                    pushToCloud();
+                }
+            }, 15000);
+        }
+
         let syncTimeout = null;
         function scheduleCloudPush() {
-            if (currentUser && !isSyncing) {
+            if (currentUser && isDataLoaded && !isSyncing) {
                 clearTimeout(syncTimeout);
-                syncTimeout = setTimeout(() => { pushToCloud(); }, 1500); // 防抖 1.5 秒
+                syncTimeout = setTimeout(() => { pushToCloud(); }, 1500); 
             }
         }
 
-        function loadLocalData() {
+        function loadLocalData(unlockGuard = true) {
             try {
                 const storedFolders = localStorage.getItem(STORAGE_KEY_FOLDERS);
                 if (storedFolders) folders = JSON.parse(storedFolders);
@@ -369,46 +344,86 @@
                     currentFolderId = null;
                 }
             } catch (e) {
-                console.error("存储读取错误，已被初始化:", e);
-                folders = [];
-                textItems = [];
-                currentFolderId = null;
+                console.error("存储读取错误:", e);
+                folders = []; textItems = []; currentFolderId = null;
             }
-            
+            if (unlockGuard) isDataLoaded = true;
             renderFolders();
             updateWorkspaceState();
         }
 
         function saveData() { 
+            if (!isDataLoaded) return;
             localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(textItems)); 
             scheduleCloudPush();
         }
         function saveFolders() { 
+            if (!isDataLoaded) return;
             localStorage.setItem(STORAGE_KEY_FOLDERS, JSON.stringify(folders)); 
             scheduleCloudPush();
         }
         function saveCurrent() { 
+            if (!isDataLoaded) return;
             if(currentFolderId) localStorage.setItem(STORAGE_KEY_CURRENT, currentFolderId);
             else localStorage.removeItem(STORAGE_KEY_CURRENT);
             scheduleCloudPush();
         }
 
-        // --- 云端同步引擎 ---
-        function setSyncingUI(active) {
-            if (!currentUser) return;
-            if (active) {
+        function setSyncingUI(status) {
+            syncStatus = status;
+            if (!currentUser) {
+                syncIcon.className = "w-4 h-4 shrink-0";
+                syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>`;
+                authBtn.className = "w-full text-xs py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 text-blue-600 dark:text-blue-400 rounded-xl transition-all font-medium flex items-center justify-center gap-1.5 border border-blue-200 dark:border-blue-800/50 active:scale-95";
+                return;
+            }
+
+            if (status === 'syncing') {
                 syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>`;
-                syncIcon.classList.add('spin');
-            } else {
-                syncIcon.classList.remove('spin');
+                syncIcon.className = "w-4 h-4 shrink-0 spin";
+                authBtn.className = "w-full text-xs py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl transition-all font-medium flex items-center justify-center gap-1.5 border border-blue-200 dark:border-blue-800/50";
+            } else if (status === 'success') {
+                syncIcon.className = "w-4 h-4 shrink-0";
                 syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>`;
+                authBtn.className = "w-full text-xs py-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-xl transition-all font-medium flex items-center justify-center gap-1.5 border border-green-200 dark:border-green-800/50";
+            } else if (status === 'error') {
+                syncIcon.className = "w-4 h-4 shrink-0";
+                syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>`;
+                authBtn.className = "w-full text-xs py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl transition-all font-medium flex items-center justify-center gap-1.5 border border-amber-200 dark:border-amber-800/50";
+            }
+        }
+
+        function mergeCommanderData(cloudFolders, cloudItems) {
+            // 1. 合并文件夹（按 id 去重并并集）
+            const folderMap = new Map();
+            folders.forEach(f => { if(f && f.id) folderMap.set(f.id, f); });
+            (cloudFolders || []).forEach(cf => {
+                if (cf && cf.id && !folderMap.has(cf.id)) {
+                    folderMap.set(cf.id, cf);
+                }
+            });
+            folders = Array.from(folderMap.values());
+
+            // 2. 合并文本记录（按 id 去重）
+            const itemMap = new Map();
+            textItems.forEach(t => { if(t && t.id) itemMap.set(t.id, t); });
+            (cloudItems || []).forEach(ci => {
+                if (ci && ci.id && !itemMap.has(ci.id)) {
+                    itemMap.set(ci.id, ci);
+                }
+            });
+            textItems = Array.from(itemMap.values());
+
+            // 修正当前 Folder ID
+            if (!currentFolderId && folders.length > 0) {
+                currentFolderId = folders[0].id;
             }
         }
 
         async function pushToCloud() {
-            if (!currentUser) return;
+            if (!currentUser || !isDataLoaded) return;
             isSyncing = true;
-            setSyncingUI(true);
+            setSyncingUI('syncing');
             try {
                 const token = await currentUser.getIdToken();
                 const payload = {
@@ -421,62 +436,58 @@
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ app: 'commander', data: payload })
                 });
+                setSyncingUI('success');
             } catch (e) {
                 console.error('Push failed', e);
+                setSyncingUI('error');
             } finally {
                 isSyncing = false;
-                setSyncingUI(false);
             }
         }
 
         async function pullFromCloud() {
             if (!currentUser) return;
             isSyncing = true;
-            setSyncingUI(true);
+            setSyncingUI('syncing');
             try {
                 const token = await currentUser.getIdToken();
                 const res = await fetch(`${WORKER_API_URL}?app=commander`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const json = await res.json();
+                
+                loadLocalData(false); // 先读取本地数据
+
                 if (json.data) {
-                    if (json.data[STORAGE_KEY_FOLDERS]) {
-                        localStorage.setItem(STORAGE_KEY_FOLDERS, json.data[STORAGE_KEY_FOLDERS]);
-                        folders = JSON.parse(json.data[STORAGE_KEY_FOLDERS]);
-                    }
-                    if (json.data[STORAGE_KEY_DATA]) {
-                        localStorage.setItem(STORAGE_KEY_DATA, json.data[STORAGE_KEY_DATA]);
-                        textItems = JSON.parse(json.data[STORAGE_KEY_DATA]);
-                    }
-                    if (json.data[STORAGE_KEY_CURRENT]) {
-                        localStorage.setItem(STORAGE_KEY_CURRENT, json.data[STORAGE_KEY_CURRENT]);
-                        currentFolderId = json.data[STORAGE_KEY_CURRENT];
-                    }
-                    
-                    renderFolders();
-                    updateWorkspaceState();
-                    showToast('已同步云端数据', 'success');
-                } else {
-                    // 如果云端没有数据，则将本地推上去
-                    pushToCloud();
+                    let cloudFolders = [], cloudItems = [];
+                    if (json.data[STORAGE_KEY_FOLDERS]) cloudFolders = JSON.parse(json.data[STORAGE_KEY_FOLDERS]);
+                    if (json.data[STORAGE_KEY_DATA]) cloudItems = JSON.parse(json.data[STORAGE_KEY_DATA]);
+
+                    // 执行增量合并逻辑
+                    mergeCommanderData(cloudFolders, cloudItems);
+
+                    localStorage.setItem(STORAGE_KEY_FOLDERS, JSON.stringify(folders));
+                    localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(textItems));
+                    if (currentFolderId) localStorage.setItem(STORAGE_KEY_CURRENT, currentFolderId);
                 }
+
+                isDataLoaded = true; // 解锁写权限
+                renderFolders();
+                updateWorkspaceState();
+                setSyncingUI('success');
             } catch (e) {
                 console.error('Pull failed', e);
+                setSyncingUI('error');
+                loadLocalData(true);
             } finally {
                 isSyncing = false;
-                setSyncingUI(false);
             }
         }
 
-        // --- Auth 界面与交互 ---
         authBtn.addEventListener('click', () => {
             if (currentUser) {
-                if (confirm("确定要退出登录吗？退出后数据将保存在本地，不再云端同步。")) {
-                    auth.signOut();
-                }
-            } else {
-                openAuthModal();
-            }
+                if (confirm("确定要退出登录吗？退出后数据保存在本地。")) auth.signOut();
+            } else openAuthModal();
         });
 
         function openAuthModal() {
@@ -502,14 +513,9 @@
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             authError.classList.add('hidden');
-            const email = authEmail.value;
-            const password = authPassword.value;
             try {
-                if (isSignUpMode) {
-                    await auth.createUserWithEmailAndPassword(email, password);
-                } else {
-                    await auth.signInWithEmailAndPassword(email, password);
-                }
+                if (isSignUpMode) await auth.createUserWithEmailAndPassword(authEmail.value, authPassword.value);
+                else await auth.signInWithEmailAndPassword(authEmail.value, authPassword.value);
                 closeAuthModal();
                 authEmail.value = ''; authPassword.value = '';
             } catch (err) {
@@ -530,56 +536,38 @@
             }
         });
 
-
-        // --- 原版 UI & 业务逻辑 ---
         function updateFolderVisuals() {
             const folderDivs = folderListEl.querySelectorAll('[data-id]');
             folderDivs.forEach(div => {
                 const id = div.dataset.id;
                 const isActive = id === currentFolderId;
-                
                 div.className = `group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer smooth-transition border transition-all ${
                     isActive 
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-medium' 
                         : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800/80'
                 }`;
 
-                const iconContainer = div.querySelector('.folder-icon-container');
-                if (iconContainer) {
-                    iconContainer.innerHTML = isActive 
-                        ? `<svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>`
-                        : `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>`;
-                }
-
                 const badge = div.querySelector('.count-badge');
                 if (badge) {
                     badge.className = `count-badge text-[10px] px-1.5 py-0.5 rounded-md ${isActive ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400'}`;
-                    const count = textItems.filter(item => item.folderId === id).length;
-                    badge.textContent = count;
+                    badge.textContent = textItems.filter(item => item.folderId === id).length;
                 }
             });
         }
 
         function renderFolders() {
             folderListEl.innerHTML = '';
-            
             folders.forEach(folder => {
                 const isActive = folder.id === currentFolderId;
-                
                 const folderDiv = document.createElement('div');
                 folderDiv.className = `group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer smooth-transition border transition-all ${
-                    isActive 
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-medium' 
-                        : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800/80'
+                    isActive ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-medium' : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800/80'
                 }`;
                 folderDiv.dataset.id = folder.id;
-
                 folderDiv.draggable = true;
+
                 folderDiv.addEventListener('dragstart', (e) => {
-                    if (e.target.tagName === 'INPUT') {
-                        e.preventDefault();
-                        return;
-                    }
+                    if (e.target.tagName === 'INPUT') return e.preventDefault();
                     draggingFolderId = folder.id;
                     folderDiv.classList.add('opacity-40', 'border-blue-400', 'border-dashed');
                 });
@@ -618,90 +606,20 @@
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded text-slate-400 dark:text-slate-500 hover:text-red-500 transition-all duration-150';
                 deleteBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    openDeleteModal(folder.id); 
-                });
+                deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); openDeleteModal(folder.id); });
                 rightArea.appendChild(deleteBtn);
 
                 folderDiv.appendChild(rightArea);
 
                 folderDiv.addEventListener('click', (e) => {
                     if (e.target.tagName === 'INPUT') return;
-                    
-                    if (globalSearchInput.value.trim() !== '') {
-                        globalSearchInput.value = '';
-                    } else if (currentFolderId === folder.id) {
-                        return; 
-                    }
-                    
+                    if (globalSearchInput.value.trim() !== '') globalSearchInput.value = '';
+                    else if (currentFolderId === folder.id) return;
                     currentFolderId = folder.id;
                     saveCurrent();
-                    
                     updateFolderVisuals(); 
                     updateWorkspaceState();
                     if (window.innerWidth < 768) closeSidebar();
-                });
-
-                folderDiv.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    if (folderDiv.querySelector('input')) return; 
-
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = folder.name;
-                    input.className = 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-100 px-2 py-0.5 rounded border border-blue-500 w-full text-sm focus:outline-none';
-                    
-                    folderDiv.draggable = false;
-                    nameSpan.replaceWith(input);
-                    rightArea.style.display = 'none';
-                    input.focus();
-                    input.select();
-
-                    let isFinished = false;
-                    const saveRename = () => {
-                        if (isFinished) return;
-                        isFinished = true;
-                        const newName = input.value.trim();
-                        if (newName && newName !== folder.name) {
-                            folder.name = newName;
-                            saveFolders();
-                            updateWorkspaceState();
-                        }
-                        folderDiv.draggable = true; 
-                        renderFolders(); 
-                    };
-                    input.addEventListener('blur', saveRename);
-                    input.addEventListener('keydown', (evt) => {
-                        if (evt.key === 'Enter') saveRename();
-                        if (evt.key === 'Escape') {
-                            isFinished = true;
-                            folderDiv.draggable = true; 
-                            renderFolders(); 
-                        }
-                    });
-                });
-
-                folderDiv.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    if (draggingId) folderDiv.classList.add('bg-blue-100', 'dark:bg-blue-900/40', 'border-blue-400');
-                });
-                folderDiv.addEventListener('dragleave', () => {
-                    folderDiv.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'border-blue-400');
-                });
-                folderDiv.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    folderDiv.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'border-blue-400');
-                    if (draggingId) {
-                        const targetItem = textItems.find(t => t.id === draggingId);
-                        if (targetItem && targetItem.folderId !== folder.id) {
-                            targetItem.folderId = folder.id;
-                            saveData();
-                            renderItems();
-                            updateFolderVisuals(); 
-                            showToast(`已移动至 ${folder.name}`, 'success');
-                        }
-                    }
                 });
 
                 folderListEl.appendChild(folderDiv);
@@ -709,7 +627,7 @@
         }
 
         folderListEl.addEventListener('dragover', e => {
-            if (!draggingFolderId) return; 
+            if (!draggingFolderId) return;
             e.preventDefault();
             const afterElement = getDragAfterElementForFolder(folderListEl, e.clientY);
             const draggable = document.querySelector(`[data-id="${draggingFolderId}"]`);
@@ -743,17 +661,12 @@
         function deleteFolder(id) {
             folders = folders.filter(f => f.id !== id);
             textItems = textItems.filter(item => item.folderId !== id); 
-            
-            saveFolders();
-            saveData();
-            
+            saveFolders(); saveData();
             if (currentFolderId === id) {
                 currentFolderId = folders.length > 0 ? folders[0].id : null;
                 saveCurrent();
             }
-            
-            renderFolders();
-            updateWorkspaceState();
+            renderFolders(); updateWorkspaceState();
             showToast('分类及内容已删除', 'info');
         }
 
@@ -771,31 +684,19 @@
 
         cancelDeleteBtn.addEventListener('click', closeDeleteModal);
         confirmDeleteBtn.addEventListener('click', () => {
-            if (folderToDelete) {
-                deleteFolder(folderToDelete);
-                closeDeleteModal();
-            }
+            if (folderToDelete) { deleteFolder(folderToDelete); closeDeleteModal(); }
         });
 
-        // ==========================
-        // 导入导出逻辑模块
-        // ==========================
         exportBtn.addEventListener('click', () => {
-            if (folders.length === 0 && textItems.length === 0) {
-                return showToast('没有可导出的数据', 'warning');
-            }
+            if (folders.length === 0 && textItems.length === 0) return showToast('没有可导出的数据', 'warning');
             const backupData = { folders, textItems };
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            const dateStr = new Date().toISOString().split('T')[0];
-            a.download = `Commander备份_${dateStr}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('数据备份已成功导出', 'success');
+            a.download = `Commander备份_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            showToast('数据备份已导出', 'success');
         });
 
         importBtn.addEventListener('click', () => fileInput.click());
@@ -803,7 +704,6 @@
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
@@ -811,12 +711,8 @@
                     if (data.folders && Array.isArray(data.folders) && data.textItems && Array.isArray(data.textItems)) {
                         pendingImportData = data;
                         openImportModal();
-                    } else {
-                        showToast('格式不支持：非Commander备份文件', 'warning');
-                    }
-                } catch (err) {
-                    showToast('文件解析失败，请检查文件是否损坏', 'warning');
-                }
+                    } else showToast('格式不支持：非Commander备份文件', 'warning');
+                } catch (err) { showToast('文件解析失败', 'warning'); }
                 fileInput.value = '';
             };
             reader.readAsText(file);
@@ -836,18 +732,11 @@
         cancelImportBtn.addEventListener('click', closeImportModal);
         confirmImportBtn.addEventListener('click', () => {
             if (pendingImportData) {
-                folders = pendingImportData.folders;
-                textItems = pendingImportData.textItems;
-                saveFolders();
-                saveData();
-                
-                currentFolderId = folders.length > 0 ? folders[0].id : null;
-                saveCurrent();
-                
-                renderFolders();
-                updateWorkspaceState();
+                mergeCommanderData(pendingImportData.folders, pendingImportData.textItems);
+                saveFolders(); saveData();
+                renderFolders(); updateWorkspaceState();
                 closeImportModal();
-                showToast('数据已成功恢复！', 'success');
+                showToast('数据已成功增量合并！', 'success');
             }
         });
 
@@ -857,26 +746,16 @@
         function createFolder() {
             const name = newFolderInput.value.trim();
             if (!name) return showToast('名字不能为空', 'warning');
-            
             const newFolder = { id: Date.now().toString(), name: name };
             folders.push(newFolder);
             saveFolders();
-            
-            if (!currentFolderId) {
-                currentFolderId = newFolder.id;
-                saveCurrent();
-            }
-            
+            if (!currentFolderId) { currentFolderId = newFolder.id; saveCurrent(); }
             newFolderInput.value = '';
-            renderFolders();
-            updateWorkspaceState();
+            renderFolders(); updateWorkspaceState();
         }
 
         function updateWorkspaceState() {
-            if (globalSearchInput.value.trim() !== '') {
-                handleGlobalSearch();
-                return;
-            }
+            if (globalSearchInput.value.trim() !== '') return handleGlobalSearch();
 
             if (!currentFolderId || folders.length === 0) {
                 currentFolderNameEl.textContent = '未选择分类';
@@ -894,25 +773,19 @@
 
         function handleGlobalSearch() {
             const query = globalSearchInput.value.trim().toLowerCase();
-            if (query === '') {
-                updateWorkspaceState();
-                return;
-            }
+            if (query === '') return updateWorkspaceState();
 
             currentFolderNameEl.textContent = `搜索结果: "${query}"`;
             inputAreaContainer.classList.add('hidden'); 
             listContainer.innerHTML = '';
             
             const results = textItems.filter(item => item.text.toLowerCase().includes(query));
-            
             if (results.length === 0) {
                 workspaceEmptyState.classList.remove('hidden');
                 emptyStateText.textContent = '未找到匹配的记录';
             } else {
                 workspaceEmptyState.classList.add('hidden');
-                results.forEach(item => {
-                    listContainer.appendChild(createTextItemElement(item, true)); 
-                });
+                results.forEach(item => { listContainer.appendChild(createTextItemElement(item, true)); });
             }
         }
         
@@ -921,15 +794,12 @@
         function renderItems() {
             listContainer.innerHTML = '';
             const filteredItems = textItems.filter(item => item.folderId === currentFolderId);
-            
             if (filteredItems.length === 0) {
                 workspaceEmptyState.classList.remove('hidden');
                 emptyStateText.textContent = '此分类下暂无记录，在下方开始输入吧';
             } else {
                 workspaceEmptyState.classList.add('hidden');
-                filteredItems.forEach(item => {
-                    listContainer.appendChild(createTextItemElement(item));
-                });
+                filteredItems.forEach(item => { listContainer.appendChild(createTextItemElement(item)); });
             }
         }
 
@@ -992,11 +862,8 @@
                 e.stopPropagation();
                 textItems = textItems.filter(t => t.id !== item.id);
                 saveData();
-                if (isSearchMode) {
-                    handleGlobalSearch(); 
-                } else {
-                    renderItems();
-                }
+                if (isSearchMode) handleGlobalSearch();
+                else renderItems();
                 renderFolders();
                 showToast('已删除记录', 'info');
             });
@@ -1057,12 +924,7 @@
             const val = inputEl.value.trim();
             if (!val) return showToast('内容不能为空', 'warning');
 
-            const newItem = {
-                id: Date.now().toString(),
-                folderId: currentFolderId,
-                text: val
-            };
-
+            const newItem = { id: Date.now().toString(), folderId: currentFolderId, text: val };
             textItems.unshift(newItem);
             saveData();
             
@@ -1070,8 +932,7 @@
             inputEl.style.height = 'auto';
             inputEl.focus();
 
-            renderItems();
-            updateFolderVisuals(); 
+            renderItems(); updateFolderVisuals(); 
         }
 
         function copyToClipboard(text) {
@@ -1079,21 +940,17 @@
             temp.value = text;
             temp.style.position = 'fixed';
             temp.style.left = '-9999px';
-            document.body.appendChild(temp);
-            temp.select();
+            document.body.appendChild(temp); temp.select();
             
             try {
                 if (document.execCommand('copy')) showToast('已复制到剪切板 📋', 'success');
-            } catch (err) {
-                showToast('当前环境不支持复制', 'warning');
-            }
+            } catch (err) { showToast('当前环境不支持复制', 'warning'); }
             document.body.removeChild(temp);
         }
 
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = 'flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border smooth-transition translate-y-[-10px] opacity-0 bg-white dark:bg-darkcard font-medium text-sm z-50';
-            
             let borderStyle = 'border-slate-200 dark:border-darkborder text-slate-700 dark:text-slate-200';
             if (type === 'success') borderStyle = 'border-green-200 dark:border-green-900/50 text-green-600 dark:text-green-400';
             
@@ -1112,9 +969,7 @@
             if (window.innerWidth < 768) {
                 sidebar.classList.remove('-translate-x-full');
                 sidebarOverlay.classList.remove('hidden');
-            } else {
-                sidebar.classList.toggle('desktop-sidebar-collapsed');
-            }
+            } else sidebar.classList.toggle('desktop-sidebar-collapsed');
         });
 
         closeSidebarBtn.addEventListener('click', closeSidebar);
