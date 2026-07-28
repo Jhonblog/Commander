@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commander</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 引入 Firebase Auth SDK (Compat 模式) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#000000',    // OLED 纯黑背景
+                        darkside: '#0a0a0a',  // 极深灰侧边栏
+                        darkcard: '#111111',  // 深色卡片
+                        darkborder: '#1f1f22' // 优雅深灰边框
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 平滑过渡 */
+        .smooth-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* 隐藏原生滚动条，但保留滚动功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 桌面端侧边栏折叠样式 */
+        @media (min-width: 768px) {
+            .desktop-sidebar-collapsed {
+                width: 0 !important;
+                border-right-width: 0 !important;
+                opacity: 0;
+            }
+        }
+
+        /* 加载动画 */
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-darkbg text-slate-800 dark:text-slate-100 font-sans overflow-hidden smooth-transition">
+
+    <!-- 主框架 -->
+    <div class="flex h-full w-full relative">
+        
+        <!-- 移动端侧边栏遮罩背景 -->
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden smooth-transition backdrop-blur-sm"></div>
+
+        <!-- 左侧分类文件夹侧边栏 -->
+        <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 flex flex-col flex-shrink-0 w-72 h-full bg-white dark:bg-darkside border-r border-slate-200 dark:border-darkborder transition-all duration-300 transform -translate-x-full md:translate-x-0 overflow-hidden">
+            
+            <!-- 头部 Logo 与应用名 -->
+            <div class="p-5 border-b border-slate-100 dark:border-darkborder flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">📝</span>
+                    <h1 class="font-bold text-[17px] tracking-wide text-slate-800 dark:text-slate-100">Commander</h1>
+                </div>
+                <!-- 移动端关闭按钮 -->
+                <button id="closeSidebarBtn" class="md:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-500 smooth-transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- 新建文件夹输入区 -->
+            <div class="p-4 border-b border-slate-100 dark:border-darkborder shrink-0">
+                <div class="flex gap-2">
+                    <input type="text" id="newFolderInput" class="flex-1 bg-slate-50 dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200" placeholder="新建分类文件夹...">
+                    <button id="addFolderBtn" class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-medium rounded-xl px-4 py-2 text-sm transition-all shadow-sm active:scale-95 shrink-0">
+                        新建
+                    </button>
+                </div>
+            </div>
+
+            <!-- 文件夹列表区 -->
+            <div id="folderList" class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1">
+                <!-- 动态生成 -->
+            </div>
+
+            <!-- 数据导入导出及云同步区 (底部栏) -->
+            <div class="p-4 border-t border-slate-100 dark:border-darkborder shrink-0 flex flex-col gap-2">
+                <!-- 登录同步按钮 -->
+                <button id="authBtn" class="w-full text-xs py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all font-medium flex items-center justify-center gap-1.5 border border-blue-200 dark:border-blue-800/50 active:scale-95">
+                    <svg id="syncIcon" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg> 
+                    <span id="authBtnText" class="truncate max-w-[150px]">登录并同步</span>
+                </button>
+
+                <div class="flex gap-2 w-full">
+                    <button id="exportBtn" class="flex-1 text-xs py-2 bg-slate-50 dark:bg-zinc-800/50 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-slate-300 rounded-xl transition-all font-medium flex items-center justify-center gap-1 border border-slate-200 dark:border-zinc-700/50 active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> 导出
+                    </button>
+                    <button id="importBtn" class="flex-1 text-xs py-2 bg-slate-50 dark:bg-zinc-800/50 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-slate-300 rounded-xl transition-all font-medium flex items-center justify-center gap-1 border border-slate-200 dark:border-zinc-700/50 active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> 导入
+                    </button>
+                    <input type="file" id="fileInput" accept=".json" class="hidden">
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧主工作区 -->
+        <main class="flex-1 flex flex-col h-full min-w-0 relative bg-slate-50 dark:bg-darkbg smooth-transition">
+            
+            <!-- 顶部控制导航栏 -->
+            <header class="h-[68px] border-b border-slate-200 dark:border-darkborder flex items-center justify-between px-6 bg-white dark:bg-darkside shrink-0">
+                <div class="flex items-center gap-4 flex-1 min-w-0">
+                    <!-- 显示/隐藏侧边栏按钮 -->
+                    <button id="toggleSidebarBtn" class="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-all active:scale-95 text-slate-600 dark:text-slate-300 shrink-0" title="收起/展开侧边栏">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <!-- 当前文件夹标题 -->
+                    <span id="currentFolderName" class="font-bold text-[17px] text-slate-800 dark:text-slate-100 truncate">请选择分类</span>
+                </div>
+                <!-- 全局搜索框 -->
+                <div class="relative w-36 md:w-64 transition-all duration-300 shrink-0 ml-4">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input type="text" id="globalSearchInput" class="block w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-darkborder rounded-xl leading-5 bg-slate-50 dark:bg-darkcard text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 sm:text-sm transition-all shadow-sm" placeholder="全局搜索...">
+                </div>
+            </header>
+
+            <!-- 列表展示区 -->
+            <div class="flex-1 overflow-y-auto p-6 relative" id="mainScrollArea">
+                <div id="listContainer" class="max-w-4xl mx-auto space-y-3.5 pb-20">
+                    <!-- 动态渲染生成的文本条 -->
+                </div>
+                
+                <!-- 空白/无分类占位状态 -->
+                <div id="workspaceEmptyState" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <div class="text-5xl mb-4 opacity-30 dark:opacity-20">📁</div>
+                    <p id="emptyStateText" class="text-slate-400 dark:text-slate-500 text-sm font-medium">这里空空如也，请先在左侧创建一个分类</p>
+                </div>
+            </div>
+
+            <!-- 底部文本录入区域 -->
+            <div id="inputAreaContainer" class="p-5 border-t border-slate-200 dark:border-darkborder bg-white dark:bg-darkside shrink-0 hidden">
+                <div class="max-w-4xl mx-auto flex gap-3 items-end">
+                    <div class="flex-1 relative">
+                        <textarea id="mainInput" class="w-full bg-slate-50 dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-2xl px-5 py-3.5 text-slate-800 dark:text-slate-100 text-base focus:outline-none focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none min-h-[52px] max-h-[200px] overflow-hidden leading-relaxed shadow-sm" rows="1" placeholder="在此输入内容 (回车记录，Shift+回车换行)"></textarea>
+                    </div>
+                    <button id="confirmBtn" class="bg-slate-800 hover:bg-slate-900 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-medium rounded-2xl h-[52px] px-8 transition-all duration-200 shadow-sm active:scale-95 shrink-0 flex items-center justify-center">
+                        记录
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 右下角悬浮操作区（包含主题切换） -->
+    <div class="fixed top-6 right-6 z-50 md:top-auto md:bottom-6 md:right-6">
+        <button id="themeToggleBtn" class="w-11 h-11 rounded-full bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder shadow-lg flex items-center justify-center text-slate-600 dark:text-yellow-500 active:scale-95 smooth-transition hover:scale-105" title="切换主题">
+            <svg id="themeIconSun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
+            <svg id="themeIconMoon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        </button>
+    </div>
+
+    <!-- 提示容器 -->
+    <div id="toastContainer" class="fixed top-6 right-1/2 translate-x-1/2 md:translate-x-0 md:right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Firebase 登录/注册弹窗 -->
+    <div id="authModal" class="fixed inset-0 bg-black/50 z-[120] flex items-center justify-center backdrop-blur-sm opacity-0 pointer-events-none smooth-transition">
+        <div id="authModalContent" class="bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl transform scale-95 smooth-transition relative">
+            <button id="closeAuthBtn" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1" id="authModalTitle">登录并同步</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">登录后记录将自动同步至云端，永不丢失。</p>
+
+            <div id="authError" class="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs p-2 rounded-xl mb-4 border border-red-100 dark:border-red-900 hidden"></div>
+
+            <form id="authForm" class="space-y-3">
+                <input type="email" id="authEmail" required placeholder="邮箱地址" class="w-full bg-slate-50 dark:bg-darkbg border border-slate-200 dark:border-darkborder rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500">
+                <input type="password" id="authPassword" required placeholder="密码" class="w-full bg-slate-50 dark:bg-darkbg border border-slate-200 dark:border-darkborder rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500">
+                <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-sm transition-all active:scale-95">登录</button>
+            </form>
+
+            <div class="relative my-5 flex items-center justify-center">
+                <div class="border-t border-slate-200 dark:border-darkborder w-full"></div>
+                <span class="bg-white dark:bg-darkcard px-3 text-xs text-slate-400 dark:text-slate-500 absolute">或</span>
+            </div>
+
+            <button id="googleAuthBtn" class="w-full py-3 border border-slate-200 dark:border-darkborder hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm">
+                <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                谷歌账号快捷登录
+            </button>
+
+            <div class="mt-5 text-center">
+                <button type="button" id="toggleSignUpBtn" class="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline transition">没有账号？去注册</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认删除弹窗 -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center backdrop-blur-sm opacity-0 pointer-events-none smooth-transition">
+        <div id="deleteModalContent" class="bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl transform scale-95 smooth-transition">
+            <h3 class="text-[17px] font-bold text-slate-800 dark:text-slate-100 mb-2">删除分类</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">确定要删除该分类及其包含的所有记录吗？此操作无法撤销。</p>
+            <div class="flex justify-end gap-3">
+                <button id="cancelDeleteBtn" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all active:scale-95">取消</button>
+                <button id="confirmDeleteBtn" class="px-4 py-2 rounded-xl text-sm font-medium bg-red-500 hover:bg-red-600 text-white shadow-sm transition-all active:scale-95">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认导入弹窗 -->
+    <div id="importModal" class="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center backdrop-blur-sm opacity-0 pointer-events-none smooth-transition">
+        <div id="importModalContent" class="bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl transform scale-95 smooth-transition">
+            <h3 class="text-[17px] font-bold text-slate-800 dark:text-slate-100 mb-2">恢复数据</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">导入新的备份文件将<strong class="text-red-500">覆盖并抹除</strong>当前页面所有的分类和记录。确定要继续吗？</p>
+            <div class="flex justify-end gap-3">
+                <button id="cancelImportBtn" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all active:scale-95">取消</button>
+                <button id="confirmImportBtn" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95">确认覆盖</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Firebase & Workers 配置 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAinFheSkx_rP7E_wjjwlv858hgybtR9PE",
+            authDomain: "myapp-81de3.firebaseapp.com",
+            projectId: "myapp-81de3",
+            storageBucket: "myapp-81de3.firebasestorage.app",
+            messagingSenderId: "141029028878",
+            appId: "1:141029028878:web:2f9cb7e530d74f56b9f85f",
+            measurementId: "G-TTD9LRDSPP"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const WORKER_API_URL = "https://orange-waterfall-c961.wangsingo2018.workers.dev";
+        
+        let currentUser = null;
+        let isSyncing = false;
+        let isSignUpMode = false;
+
+        // 核心变量，启用全新的存储键名
+        const STORAGE_KEY_DATA = 'commander_data_v4';
+        const STORAGE_KEY_FOLDERS = 'commander_folders_v4';
+        const STORAGE_KEY_CURRENT = 'commander_current_v4';
+        const STORAGE_KEY_THEME = 'commander_theme_v4';
+
+        let folders = [];
+        let textItems = [];
+        let currentFolderId = null;
+        let draggingId = null;
+        let draggingFolderId = null; 
+        let folderToDelete = null;
+        let pendingImportData = null; 
+
+        // DOM 抓取
+        const inputEl = document.getElementById('mainInput');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const listContainer = document.getElementById('listContainer');
+        const folderListEl = document.getElementById('folderList');
+        const currentFolderNameEl = document.getElementById('currentFolderName');
+        const workspaceEmptyState = document.getElementById('workspaceEmptyState');
+        const emptyStateText = document.getElementById('emptyStateText');
+        const inputAreaContainer = document.getElementById('inputAreaContainer');
+        const globalSearchInput = document.getElementById('globalSearchInput');
+        const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+        const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const newFolderInput = document.getElementById('newFolderInput');
+        const addFolderBtn = document.getElementById('addFolderBtn');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIconSun = document.getElementById('themeIconSun');
+        const themeIconMoon = document.getElementById('themeIconMoon');
+        const toastContainer = document.getElementById('toastContainer');
+        const deleteModal = document.getElementById('deleteModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const importBtn = document.getElementById('importBtn');
+        const fileInput = document.getElementById('fileInput');
+        const importModal = document.getElementById('importModal');
+        const cancelImportBtn = document.getElementById('cancelImportBtn');
+        const confirmImportBtn = document.getElementById('confirmImportBtn');
+        
+        // Auth DOM
+        const authBtn = document.getElementById('authBtn');
+        const authBtnText = document.getElementById('authBtnText');
+        const syncIcon = document.getElementById('syncIcon');
+        const authModal = document.getElementById('authModal');
+        const authModalContent = document.getElementById('authModalContent');
+        const closeAuthBtn = document.getElementById('closeAuthBtn');
+        const authForm = document.getElementById('authForm');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const googleAuthBtn = document.getElementById('googleAuthBtn');
+        const toggleSignUpBtn = document.getElementById('toggleSignUpBtn');
+        const authError = document.getElementById('authError');
+        const authModalTitle = document.getElementById('authModalTitle');
+
+        function init() {
+            // 初始化 Firebase 监听器
+            auth.onAuthStateChanged(async (user) => {
+                currentUser = user;
+                if (user) {
+                    authBtnText.textContent = `${(user.displayName || user.email).split('@')[0]}`;
+                    // 更换图标为勾
+                    syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>`;
+                    authBtn.classList.add('bg-green-50', 'dark:bg-green-900/20', 'text-green-600', 'dark:text-green-400', 'border-green-200', 'dark:border-green-800/50');
+                    authBtn.classList.remove('bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'dark:text-blue-400', 'border-blue-200', 'dark:border-blue-800/50');
+                    
+                    await pullFromCloud(); // 登录后拉取数据
+                } else {
+                    authBtnText.textContent = "登录并同步";
+                    syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>`;
+                    authBtn.classList.remove('bg-green-50', 'dark:bg-green-900/20', 'text-green-600', 'dark:text-green-400', 'border-green-200', 'dark:border-green-800/50');
+                    authBtn.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'dark:text-blue-400', 'border-blue-200', 'dark:border-blue-800/50');
+                    
+                    loadLocalData(); // 未登录退回本地存储
+                }
+            });
+
+            initTheme();
+            initResponsiveSidebar();
+        }
+
+        // --- 核心数据存取逻辑 (加入静默同步) ---
+        let syncTimeout = null;
+        function scheduleCloudPush() {
+            if (currentUser && !isSyncing) {
+                clearTimeout(syncTimeout);
+                syncTimeout = setTimeout(() => { pushToCloud(); }, 1500); // 防抖 1.5 秒
+            }
+        }
+
+        function loadLocalData() {
+            try {
+                const storedFolders = localStorage.getItem(STORAGE_KEY_FOLDERS);
+                if (storedFolders) folders = JSON.parse(storedFolders);
+
+                const storedData = localStorage.getItem(STORAGE_KEY_DATA);
+                if (storedData) textItems = JSON.parse(storedData);
+
+                const storedCurrent = localStorage.getItem(STORAGE_KEY_CURRENT);
+                if (storedCurrent && folders.some(f => f.id === storedCurrent)) {
+                    currentFolderId = storedCurrent;
+                } else if (folders.length > 0) {
+                    currentFolderId = folders[0].id;
+                } else {
+                    currentFolderId = null;
+                }
+            } catch (e) {
+                console.error("存储读取错误，已被初始化:", e);
+                folders = [];
+                textItems = [];
+                currentFolderId = null;
+            }
+            
+            renderFolders();
+            updateWorkspaceState();
+        }
+
+        function saveData() { 
+            localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(textItems)); 
+            scheduleCloudPush();
+        }
+        function saveFolders() { 
+            localStorage.setItem(STORAGE_KEY_FOLDERS, JSON.stringify(folders)); 
+            scheduleCloudPush();
+        }
+        function saveCurrent() { 
+            if(currentFolderId) localStorage.setItem(STORAGE_KEY_CURRENT, currentFolderId);
+            else localStorage.removeItem(STORAGE_KEY_CURRENT);
+            scheduleCloudPush();
+        }
+
+        // --- 云端同步引擎 ---
+        function setSyncingUI(active) {
+            if (!currentUser) return;
+            if (active) {
+                syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>`;
+                syncIcon.classList.add('spin');
+            } else {
+                syncIcon.classList.remove('spin');
+                syncIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>`;
+            }
+        }
+
+        async function pushToCloud() {
+            if (!currentUser) return;
+            isSyncing = true;
+            setSyncingUI(true);
+            try {
+                const token = await currentUser.getIdToken();
+                const payload = {
+                    [STORAGE_KEY_FOLDERS]: JSON.stringify(folders),
+                    [STORAGE_KEY_DATA]: JSON.stringify(textItems),
+                    [STORAGE_KEY_CURRENT]: currentFolderId || ''
+                };
+                await fetch(WORKER_API_URL, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ app: 'commander', data: payload })
+                });
+            } catch (e) {
+                console.error('Push failed', e);
+            } finally {
+                isSyncing = false;
+                setSyncingUI(false);
+            }
+        }
+
+        async function pullFromCloud() {
+            if (!currentUser) return;
+            isSyncing = true;
+            setSyncingUI(true);
+            try {
+                const token = await currentUser.getIdToken();
+                const res = await fetch(`${WORKER_API_URL}?app=commander`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const json = await res.json();
+                if (json.data) {
+                    if (json.data[STORAGE_KEY_FOLDERS]) {
+                        localStorage.setItem(STORAGE_KEY_FOLDERS, json.data[STORAGE_KEY_FOLDERS]);
+                        folders = JSON.parse(json.data[STORAGE_KEY_FOLDERS]);
+                    }
+                    if (json.data[STORAGE_KEY_DATA]) {
+                        localStorage.setItem(STORAGE_KEY_DATA, json.data[STORAGE_KEY_DATA]);
+                        textItems = JSON.parse(json.data[STORAGE_KEY_DATA]);
+                    }
+                    if (json.data[STORAGE_KEY_CURRENT]) {
+                        localStorage.setItem(STORAGE_KEY_CURRENT, json.data[STORAGE_KEY_CURRENT]);
+                        currentFolderId = json.data[STORAGE_KEY_CURRENT];
+                    }
+                    
+                    renderFolders();
+                    updateWorkspaceState();
+                    showToast('已同步云端数据', 'success');
+                } else {
+                    // 如果云端没有数据，则将本地推上去
+                    pushToCloud();
+                }
+            } catch (e) {
+                console.error('Pull failed', e);
+            } finally {
+                isSyncing = false;
+                setSyncingUI(false);
+            }
+        }
+
+        // --- Auth 界面与交互 ---
+        authBtn.addEventListener('click', () => {
+            if (currentUser) {
+                if (confirm("确定要退出登录吗？退出后数据将保存在本地，不再云端同步。")) {
+                    auth.signOut();
+                }
+            } else {
+                openAuthModal();
+            }
+        });
+
+        function openAuthModal() {
+            authModal.classList.remove('opacity-0', 'pointer-events-none');
+            authModalContent.classList.remove('scale-95');
+        }
+
+        function closeAuthModal() {
+            authModal.classList.add('opacity-0', 'pointer-events-none');
+            authModalContent.classList.add('scale-95');
+        }
+
+        closeAuthBtn.addEventListener('click', closeAuthModal);
+
+        toggleSignUpBtn.addEventListener('click', () => {
+            isSignUpMode = !isSignUpMode;
+            authModalTitle.innerText = isSignUpMode ? "注册账号" : "登录并同步";
+            authSubmitBtn.innerText = isSignUpMode ? "立即注册" : "登录";
+            toggleSignUpBtn.innerText = isSignUpMode ? "已有账号？去登录" : "没有账号？去注册";
+            authError.classList.add('hidden');
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            authError.classList.add('hidden');
+            const email = authEmail.value;
+            const password = authPassword.value;
+            try {
+                if (isSignUpMode) {
+                    await auth.createUserWithEmailAndPassword(email, password);
+                } else {
+                    await auth.signInWithEmailAndPassword(email, password);
+                }
+                closeAuthModal();
+                authEmail.value = ''; authPassword.value = '';
+            } catch (err) {
+                authError.innerText = err.message;
+                authError.classList.remove('hidden');
+            }
+        });
+
+        googleAuthBtn.addEventListener('click', async () => {
+            authError.classList.add('hidden');
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+                closeAuthModal();
+            } catch (err) {
+                authError.innerText = err.message;
+                authError.classList.remove('hidden');
+            }
+        });
+
+
+        // --- 原版 UI & 业务逻辑 ---
+        function updateFolderVisuals() {
+            const folderDivs = folderListEl.querySelectorAll('[data-id]');
+            folderDivs.forEach(div => {
+                const id = div.dataset.id;
+                const isActive = id === currentFolderId;
+                
+                div.className = `group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer smooth-transition border transition-all ${
+                    isActive 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-medium' 
+                        : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800/80'
+                }`;
+
+                const iconContainer = div.querySelector('.folder-icon-container');
+                if (iconContainer) {
+                    iconContainer.innerHTML = isActive 
+                        ? `<svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>`
+                        : `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>`;
+                }
+
+                const badge = div.querySelector('.count-badge');
+                if (badge) {
+                    badge.className = `count-badge text-[10px] px-1.5 py-0.5 rounded-md ${isActive ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400'}`;
+                    const count = textItems.filter(item => item.folderId === id).length;
+                    badge.textContent = count;
+                }
+            });
+        }
+
+        function renderFolders() {
+            folderListEl.innerHTML = '';
+            
+            folders.forEach(folder => {
+                const isActive = folder.id === currentFolderId;
+                
+                const folderDiv = document.createElement('div');
+                folderDiv.className = `group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer smooth-transition border transition-all ${
+                    isActive 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 font-medium' 
+                        : 'border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800/80'
+                }`;
+                folderDiv.dataset.id = folder.id;
+
+                folderDiv.draggable = true;
+                folderDiv.addEventListener('dragstart', (e) => {
+                    if (e.target.tagName === 'INPUT') {
+                        e.preventDefault();
+                        return;
+                    }
+                    draggingFolderId = folder.id;
+                    folderDiv.classList.add('opacity-40', 'border-blue-400', 'border-dashed');
+                });
+                folderDiv.addEventListener('dragend', () => {
+                    draggingFolderId = null;
+                    folderDiv.classList.remove('opacity-40', 'border-blue-400', 'border-dashed');
+                    updateFolderOrder();
+                });
+
+                const leftArea = document.createElement('div');
+                leftArea.className = 'flex items-center gap-2.5 min-w-0 flex-1 pointer-events-none';
+                
+                const iconContainer = document.createElement('div');
+                iconContainer.className = 'folder-icon-container flex items-center justify-center';
+                iconContainer.innerHTML = isActive 
+                    ? `<svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>`
+                    : `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>`;
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'text-[14px] truncate folder-name-span';
+                nameSpan.textContent = folder.name;
+                
+                leftArea.appendChild(iconContainer);
+                leftArea.appendChild(nameSpan);
+                folderDiv.appendChild(leftArea);
+
+                const rightArea = document.createElement('div');
+                rightArea.className = 'right-area flex items-center gap-1.5 shrink-0';
+
+                const count = textItems.filter(item => item.folderId === folder.id).length;
+                const countBadge = document.createElement('span');
+                countBadge.className = `count-badge text-[10px] px-1.5 py-0.5 rounded-md ${isActive ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400'}`;
+                countBadge.textContent = count;
+                rightArea.appendChild(countBadge);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded text-slate-400 dark:text-slate-500 hover:text-red-500 transition-all duration-150';
+                deleteBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openDeleteModal(folder.id); 
+                });
+                rightArea.appendChild(deleteBtn);
+
+                folderDiv.appendChild(rightArea);
+
+                folderDiv.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'INPUT') return;
+                    
+                    if (globalSearchInput.value.trim() !== '') {
+                        globalSearchInput.value = '';
+                    } else if (currentFolderId === folder.id) {
+                        return; 
+                    }
+                    
+                    currentFolderId = folder.id;
+                    saveCurrent();
+                    
+                    updateFolderVisuals(); 
+                    updateWorkspaceState();
+                    if (window.innerWidth < 768) closeSidebar();
+                });
+
+                folderDiv.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    if (folderDiv.querySelector('input')) return; 
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = folder.name;
+                    input.className = 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-slate-100 px-2 py-0.5 rounded border border-blue-500 w-full text-sm focus:outline-none';
+                    
+                    folderDiv.draggable = false;
+                    nameSpan.replaceWith(input);
+                    rightArea.style.display = 'none';
+                    input.focus();
+                    input.select();
+
+                    let isFinished = false;
+                    const saveRename = () => {
+                        if (isFinished) return;
+                        isFinished = true;
+                        const newName = input.value.trim();
+                        if (newName && newName !== folder.name) {
+                            folder.name = newName;
+                            saveFolders();
+                            updateWorkspaceState();
+                        }
+                        folderDiv.draggable = true; 
+                        renderFolders(); 
+                    };
+                    input.addEventListener('blur', saveRename);
+                    input.addEventListener('keydown', (evt) => {
+                        if (evt.key === 'Enter') saveRename();
+                        if (evt.key === 'Escape') {
+                            isFinished = true;
+                            folderDiv.draggable = true; 
+                            renderFolders(); 
+                        }
+                    });
+                });
+
+                folderDiv.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (draggingId) folderDiv.classList.add('bg-blue-100', 'dark:bg-blue-900/40', 'border-blue-400');
+                });
+                folderDiv.addEventListener('dragleave', () => {
+                    folderDiv.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'border-blue-400');
+                });
+                folderDiv.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    folderDiv.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'border-blue-400');
+                    if (draggingId) {
+                        const targetItem = textItems.find(t => t.id === draggingId);
+                        if (targetItem && targetItem.folderId !== folder.id) {
+                            targetItem.folderId = folder.id;
+                            saveData();
+                            renderItems();
+                            updateFolderVisuals(); 
+                            showToast(`已移动至 ${folder.name}`, 'success');
+                        }
+                    }
+                });
+
+                folderListEl.appendChild(folderDiv);
+            });
+        }
+
+        folderListEl.addEventListener('dragover', e => {
+            if (!draggingFolderId) return; 
+            e.preventDefault();
+            const afterElement = getDragAfterElementForFolder(folderListEl, e.clientY);
+            const draggable = document.querySelector(`[data-id="${draggingFolderId}"]`);
+            if (draggable) {
+                if (afterElement == null) folderListEl.appendChild(draggable);
+                else folderListEl.insertBefore(draggable, afterElement);
+            }
+        });
+
+        function getDragAfterElementForFolder(container, y) {
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.opacity-40)')].filter(el => el.parentElement === container);
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                else return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateFolderOrder() {
+            const currentOrderIds = [...folderListEl.querySelectorAll('[data-id]')].map(el => el.dataset.id);
+            const sortedFolders = [];
+            currentOrderIds.forEach(id => {
+                const folder = folders.find(f => f.id === id);
+                if (folder) sortedFolders.push(folder);
+            });
+            folders = sortedFolders;
+            saveFolders();
+        }
+
+        function deleteFolder(id) {
+            folders = folders.filter(f => f.id !== id);
+            textItems = textItems.filter(item => item.folderId !== id); 
+            
+            saveFolders();
+            saveData();
+            
+            if (currentFolderId === id) {
+                currentFolderId = folders.length > 0 ? folders[0].id : null;
+                saveCurrent();
+            }
+            
+            renderFolders();
+            updateWorkspaceState();
+            showToast('分类及内容已删除', 'info');
+        }
+
+        function openDeleteModal(id) {
+            folderToDelete = id;
+            deleteModal.classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('deleteModalContent').classList.remove('scale-95');
+        }
+
+        function closeDeleteModal() {
+            folderToDelete = null;
+            deleteModal.classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('deleteModalContent').classList.add('scale-95');
+        }
+
+        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+        confirmDeleteBtn.addEventListener('click', () => {
+            if (folderToDelete) {
+                deleteFolder(folderToDelete);
+                closeDeleteModal();
+            }
+        });
+
+        // ==========================
+        // 导入导出逻辑模块
+        // ==========================
+        exportBtn.addEventListener('click', () => {
+            if (folders.length === 0 && textItems.length === 0) {
+                return showToast('没有可导出的数据', 'warning');
+            }
+            const backupData = { folders, textItems };
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.download = `Commander备份_${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('数据备份已成功导出', 'success');
+        });
+
+        importBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.folders && Array.isArray(data.folders) && data.textItems && Array.isArray(data.textItems)) {
+                        pendingImportData = data;
+                        openImportModal();
+                    } else {
+                        showToast('格式不支持：非Commander备份文件', 'warning');
+                    }
+                } catch (err) {
+                    showToast('文件解析失败，请检查文件是否损坏', 'warning');
+                }
+                fileInput.value = '';
+            };
+            reader.readAsText(file);
+        });
+
+        function openImportModal() {
+            importModal.classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('importModalContent').classList.remove('scale-95');
+        }
+
+        function closeImportModal() {
+            pendingImportData = null;
+            importModal.classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('importModalContent').classList.add('scale-95');
+        }
+
+        cancelImportBtn.addEventListener('click', closeImportModal);
+        confirmImportBtn.addEventListener('click', () => {
+            if (pendingImportData) {
+                folders = pendingImportData.folders;
+                textItems = pendingImportData.textItems;
+                saveFolders();
+                saveData();
+                
+                currentFolderId = folders.length > 0 ? folders[0].id : null;
+                saveCurrent();
+                
+                renderFolders();
+                updateWorkspaceState();
+                closeImportModal();
+                showToast('数据已成功恢复！', 'success');
+            }
+        });
+
+        addFolderBtn.addEventListener('click', createFolder);
+        newFolderInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') createFolder(); });
+
+        function createFolder() {
+            const name = newFolderInput.value.trim();
+            if (!name) return showToast('名字不能为空', 'warning');
+            
+            const newFolder = { id: Date.now().toString(), name: name };
+            folders.push(newFolder);
+            saveFolders();
+            
+            if (!currentFolderId) {
+                currentFolderId = newFolder.id;
+                saveCurrent();
+            }
+            
+            newFolderInput.value = '';
+            renderFolders();
+            updateWorkspaceState();
+        }
+
+        function updateWorkspaceState() {
+            if (globalSearchInput.value.trim() !== '') {
+                handleGlobalSearch();
+                return;
+            }
+
+            if (!currentFolderId || folders.length === 0) {
+                currentFolderNameEl.textContent = '未选择分类';
+                inputAreaContainer.classList.add('hidden');
+                workspaceEmptyState.classList.remove('hidden');
+                emptyStateText.textContent = '这里空空如也，请先在左侧创建一个分类';
+                listContainer.innerHTML = '';
+            } else {
+                const currentFolder = folders.find(f => f.id === currentFolderId);
+                currentFolderNameEl.textContent = currentFolder ? currentFolder.name : '未知分类';
+                inputAreaContainer.classList.remove('hidden');
+                renderItems();
+            }
+        }
+
+        function handleGlobalSearch() {
+            const query = globalSearchInput.value.trim().toLowerCase();
+            if (query === '') {
+                updateWorkspaceState();
+                return;
+            }
+
+            currentFolderNameEl.textContent = `搜索结果: "${query}"`;
+            inputAreaContainer.classList.add('hidden'); 
+            listContainer.innerHTML = '';
+            
+            const results = textItems.filter(item => item.text.toLowerCase().includes(query));
+            
+            if (results.length === 0) {
+                workspaceEmptyState.classList.remove('hidden');
+                emptyStateText.textContent = '未找到匹配的记录';
+            } else {
+                workspaceEmptyState.classList.add('hidden');
+                results.forEach(item => {
+                    listContainer.appendChild(createTextItemElement(item, true)); 
+                });
+            }
+        }
+        
+        if (globalSearchInput) globalSearchInput.addEventListener('input', handleGlobalSearch);
+
+        function renderItems() {
+            listContainer.innerHTML = '';
+            const filteredItems = textItems.filter(item => item.folderId === currentFolderId);
+            
+            if (filteredItems.length === 0) {
+                workspaceEmptyState.classList.remove('hidden');
+                emptyStateText.textContent = '此分类下暂无记录，在下方开始输入吧';
+            } else {
+                workspaceEmptyState.classList.add('hidden');
+                filteredItems.forEach(item => {
+                    listContainer.appendChild(createTextItemElement(item));
+                });
+            }
+        }
+
+        function createTextItemElement(item, isSearchMode = false) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'group flex items-start bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-zinc-700 smooth-transition cursor-pointer gap-3 relative';
+            itemDiv.dataset.id = item.id;
+
+            if (!isSearchMode) {
+                itemDiv.draggable = true;
+                itemDiv.addEventListener('dragstart', () => {
+                    itemDiv.classList.add('opacity-40', 'bg-blue-50/50', 'dark:bg-zinc-900', 'border-blue-400');
+                    draggingId = item.id;
+                });
+                itemDiv.addEventListener('dragend', () => {
+                    itemDiv.classList.remove('opacity-40', 'bg-blue-50/50', 'dark:bg-zinc-900', 'border-blue-400');
+                    draggingId = null;
+                    updateDataOrder();
+                });
+            }
+
+            itemDiv.addEventListener('click', (e) => {
+                if (e.target.closest('button') || e.target.closest('.cursor-grab')) return; 
+                copyToClipboard(item.text);
+            });
+
+            if (!isSearchMode) {
+                const dragHandle = document.createElement('div');
+                dragHandle.className = 'cursor-grab text-slate-300 dark:text-zinc-600 hover:text-slate-500 mr-0 mt-0.5 active:cursor-grabbing shrink-0';
+                dragHandle.innerHTML = `<svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8h16M4 16h16"></path></svg>`;
+                itemDiv.appendChild(dragHandle);
+            }
+
+            const textContentBox = document.createElement('div');
+            textContentBox.className = 'flex-1 min-w-0 flex flex-col justify-center'; 
+            
+            const textSpan = document.createElement('span');
+            textSpan.className = 'text-slate-700 dark:text-slate-200 text-[15px] leading-relaxed break-words whitespace-pre-wrap select-text block';
+            textSpan.textContent = item.text;
+            textContentBox.appendChild(textSpan);
+
+            if (isSearchMode) {
+                const folderInfo = folders.find(f => f.id === item.folderId);
+                const folderName = folderInfo ? folderInfo.name : '未知分类';
+                const folderBadge = document.createElement('span');
+                folderBadge.className = 'mt-2 self-start text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-zinc-700 flex items-center gap-1.5 font-medium';
+                folderBadge.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg> 归属于: ${folderName}`;
+                textContentBox.appendChild(folderBadge);
+            }
+
+            itemDiv.appendChild(textContentBox);
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'flex items-center self-start shrink-0 ml-2';
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'md:opacity-0 md:pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto p-2 bg-slate-50 hover:bg-red-50 dark:bg-darkbg dark:hover:bg-red-950/40 text-slate-400 hover:text-red-600 dark:text-zinc-500 border border-slate-150 dark:border-darkborder rounded-xl transition-all duration-200 active:scale-95 text-xs font-medium';
+            deleteBtn.innerHTML = `删除`;
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                textItems = textItems.filter(t => t.id !== item.id);
+                saveData();
+                if (isSearchMode) {
+                    handleGlobalSearch(); 
+                } else {
+                    renderItems();
+                }
+                renderFolders();
+                showToast('已删除记录', 'info');
+            });
+            actionsDiv.appendChild(deleteBtn);
+
+            itemDiv.appendChild(actionsDiv);
+            return itemDiv;
+        }
+
+        listContainer.addEventListener('dragover', e => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(listContainer, e.clientY);
+            const draggable = document.querySelector('.opacity-40');
+            if (draggable) {
+                if (afterElement == null) listContainer.appendChild(draggable);
+                else listContainer.insertBefore(draggable, afterElement);
+            }
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.opacity-40)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                else return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateDataOrder() {
+            const currentOrderIds = [...listContainer.querySelectorAll('[draggable="true"]')].map(el => el.dataset.id);
+            const otherItems = textItems.filter(item => item.folderId !== currentFolderId);
+            const sortedItems = [];
+            currentOrderIds.forEach(id => {
+                const item = textItems.find(t => t.id === id);
+                if (item) sortedItems.push(item);
+            });
+            textItems = [...sortedItems, ...otherItems];
+            saveData();
+        }
+
+        inputEl.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+            this.style.overflowY = this.scrollHeight > 200 ? 'auto' : 'hidden';
+        });
+
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                saveTextInput();
+            }
+        });
+
+        confirmBtn.addEventListener('click', saveTextInput);
+
+        function saveTextInput() {
+            const val = inputEl.value.trim();
+            if (!val) return showToast('内容不能为空', 'warning');
+
+            const newItem = {
+                id: Date.now().toString(),
+                folderId: currentFolderId,
+                text: val
+            };
+
+            textItems.unshift(newItem);
+            saveData();
+            
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+            inputEl.focus();
+
+            renderItems();
+            updateFolderVisuals(); 
+        }
+
+        function copyToClipboard(text) {
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            temp.style.position = 'fixed';
+            temp.style.left = '-9999px';
+            document.body.appendChild(temp);
+            temp.select();
+            
+            try {
+                if (document.execCommand('copy')) showToast('已复制到剪切板 📋', 'success');
+            } catch (err) {
+                showToast('当前环境不支持复制', 'warning');
+            }
+            document.body.removeChild(temp);
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border smooth-transition translate-y-[-10px] opacity-0 bg-white dark:bg-darkcard font-medium text-sm z-50';
+            
+            let borderStyle = 'border-slate-200 dark:border-darkborder text-slate-700 dark:text-slate-200';
+            if (type === 'success') borderStyle = 'border-green-200 dark:border-green-900/50 text-green-600 dark:text-green-400';
+            
+            toast.innerHTML = `<span>${message}</span>`;
+            toast.className += ` ${borderStyle}`;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => toast.classList.remove('translate-y-[-10px]', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-10px]', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        toggleSidebarBtn.addEventListener('click', () => {
+            if (window.innerWidth < 768) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarOverlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.toggle('desktop-sidebar-collapsed');
+            }
+        });
+
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        function closeSidebar() {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        }
+
+        function initResponsiveSidebar() {
+            if (window.innerWidth < 768) closeSidebar();
+        }
+
+        function initTheme() {
+            const localTheme = localStorage.getItem(STORAGE_KEY_THEME);
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (localTheme === 'dark' || (!localTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+                themeIconSun.classList.remove('hidden');
+                themeIconMoon.classList.add('hidden');
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                themeIconSun.classList.add('hidden');
+                themeIconMoon.classList.remove('hidden');
+                localStorage.setItem(STORAGE_KEY_THEME, 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                themeIconSun.classList.remove('hidden');
+                themeIconMoon.classList.add('hidden');
+                localStorage.setItem(STORAGE_KEY_THEME, 'dark');
+            }
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
